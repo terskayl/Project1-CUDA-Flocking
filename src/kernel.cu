@@ -1,10 +1,20 @@
 #define GLM_FORCE_CUDA
-#include <stdio.h>
+
 #include <cuda.h>
-#include <cmath>
-#include <glm/glm.hpp>
-#include "utilityCore.hpp"
 #include "kernel.h"
+#include "utilityCore.hpp"
+
+#include <cmath>
+#include <cstdio>
+#include <iostream>
+#include <vector>
+
+#include <thrust/sort.h>
+#include <thrust/execution_policy.h>
+#include <thrust/random.h>
+#include <thrust/device_vector.h>
+
+#include <glm/glm.hpp>
 
 // LOOK-2.1 potentially useful for doing grid-based neighbor search
 #ifndef imax

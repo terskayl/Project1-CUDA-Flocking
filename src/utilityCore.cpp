@@ -6,11 +6,15 @@
  * @copyright Yining Karl Li
  */
 
-#include <iostream>
+#include "utilityCore.hpp"
+
 #include <cstdio>
+#include <iostream>
+#include <iterator>
+#include <sstream>
+
 #include <glm/gtc/matrix_transform.hpp>
 #include <glm/gtc/matrix_inverse.hpp>
-#include "utilityCore.hpp"
 
 float utilityCore::clamp(float f, float min, float max) {
     if (f < min) {

@@ -7,9 +7,15 @@
 */
 
 #include "main.hpp"
+#include "kernel.h"
+
+#include <iostream>
+#include <memory>
+#include <sstream>
+
 #include <cuda_runtime.h>
 #include <cuda_gl_interop.h>
-#include "kernel.h"
+#include <glm/gtc/matrix_transform.hpp>
 
 // ================
 // Configuration

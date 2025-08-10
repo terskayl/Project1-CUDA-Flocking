@@ -1,16 +1,9 @@
 #pragma once
 
-#include <iostream>
-#include <cstdlib>
-#include <string>
-#include <sstream>
-#include <fstream>
-#include <GL/glew.h>
-#include <GLFW/glfw3.h>
-#include <glm/glm.hpp>
-#include <glm/gtc/matrix_transform.hpp>
-#include "utilityCore.hpp"
 #include "glslUtility.hpp"
+#include "utilityCore.hpp"
+#include <glm/glm.hpp>
+#include <GLFW/glfw3.h>
 
 //====================================
 // GL Stuff
