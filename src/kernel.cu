@@ -244,45 +244,49 @@ void Boids::copyBoidsToVBO(float *vbodptr_positions, float *vbodptr_velocities) 
 */
 __device__ glm::vec3 computeVelocityChange(int N, int iSelf, const glm::vec3 *pos, const glm::vec3 *vel) {
   
-  // Rule 1: boids fly towards their local perceived center of mass, which excludes themselves
     glm::vec3 perceived_center = glm::vec3(0);
-    unsigned numNeighbors = 0;
-    for (unsigned i = 0; i < N; ++i) {
-        if (i != iSelf && glm::distance(pos[i], pos[iSelf]) < rule1Distance) {
-            perceived_center += pos[i];
-            numNeighbors += 1;
-        }
-    }
-
-    if (numNeighbors > 0) {
-        perceived_center /= numNeighbors;
-    }
-    glm::vec3 rule1VelChange = (perceived_center - pos[iSelf]) * rule1Scale;
-
-  // Rule 2: boids try to stay a distance d away from each other
     glm::vec3 awayVec = glm::vec3(0);
-    for (unsigned i = 0; i < N; ++i) {
-        if (i != iSelf && glm::distance(pos[i], pos[iSelf]) < rule2Distance) {
-            awayVec -= (pos[i] - pos[iSelf]);
-        }
-    }
-    glm::vec3 rule2VelChange = awayVec * rule2Scale;
-
-  // Rule 3: boids try to match the speed of surrounding boids
     glm::vec3 perceived_velocity = glm::vec3(0);
-    numNeighbors = 0;
+
+    unsigned numNeighbors1 = 0;
+    unsigned numNeighbors3 = 0;
+
+    glm::vec3 selfPos = pos[iSelf];
+
     for (unsigned i = 0; i < N; ++i) {
-        if (i != iSelf && glm::distance(pos[i], pos[iSelf]) < rule3Distance) {
-            perceived_velocity += vel[i];
-            numNeighbors += 1;
+        if (i == iSelf) {
+            continue;
+        }
+
+        glm::vec3 currPos = pos[i];
+        glm::vec3 currVel = vel[i];
+        float distance = glm::distance(currPos, selfPos);
+
+        if (distance < rule1Distance) {
+            perceived_center += currPos;
+            numNeighbors1 += 1;
+        }
+        if (distance < rule2Distance) {
+            awayVec -= (currPos - selfPos);
+        }
+        if (distance < rule3Distance) {
+            perceived_velocity += currVel;
+            numNeighbors3 += 1;
         }
     }
 
-    if (numNeighbors > 0) {
-        perceived_velocity /= numNeighbors;
+    if (numNeighbors1 > 0) {
+        perceived_center /= numNeighbors1;
     }
-    glm::vec3 rule3VelChange = perceived_velocity * rule3Scale;
-  return rule1VelChange + rule2VelChange + rule3VelChange;
+    if (numNeighbors3 > 0) {
+        perceived_velocity /= numNeighbors3;
+    }
+
+    return (perceived_center - selfPos) * rule1Scale + awayVec * rule2Scale + perceived_velocity * rule3Scale;
+
+  // Rule 1: boids fly towards their local perceived center of mass, which excludes themselves
+  // Rule 2: boids try to stay a distance d away from each other
+  // Rule 3: boids try to match the speed of surrounding boids
 }
 
 /**
