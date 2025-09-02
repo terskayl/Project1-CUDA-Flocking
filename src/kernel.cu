@@ -253,6 +253,39 @@ void Boids::copyBoidsToVBO(float *vbodptr_positions, float *vbodptr_velocities) 
 * stepSimulation *
 ******************/
 
+__host__ __device__ void processNeighbor(int iSelf, glm::vec3 posSelf, int iNeighbor, glm::vec3 posNeighbor, glm::vec3 velNeighbor,
+    glm::vec3& perceived_center, glm::vec3& awayVec, glm::vec3& perceived_velocity, unsigned& numNeighbors1, unsigned& numNeighbors3) {
+    if (iNeighbor == iSelf) {
+        return;
+    }
+
+    float distance = glm::distance(posNeighbor, posSelf);
+
+    if (distance < rule1Distance) {
+        perceived_center += posNeighbor;
+        numNeighbors1 += 1;
+    }
+    if (distance < rule2Distance) {
+        awayVec -= (posNeighbor - posSelf);
+    }
+    if (distance < rule3Distance) {
+        perceived_velocity += velNeighbor;
+        numNeighbors3 += 1;
+    }
+}
+
+__host__ __device__ glm::vec3 combineRules(glm::vec3 selfPos, glm::vec3 perceived_center, glm::vec3 awayVec, glm::vec3 perceived_velocity, int numNeighbors1, int numNeighbors3) {
+    glm::vec3 rule1Contribution = glm::vec3(0);
+    if (numNeighbors1 > 0) {
+        perceived_center /= numNeighbors1;
+        rule1Contribution = (perceived_center - selfPos);
+    }
+    if (numNeighbors3 > 0) {
+        perceived_velocity /= numNeighbors3;
+    }
+
+    return rule1Contribution * rule1Scale + awayVec * rule2Scale + perceived_velocity * rule3Scale;
+}
 /**
 * LOOK-1.2 You can use this as a helper for kernUpdateVelocityBruteForce.
 * __device__ code can be called from a __global__ context
@@ -275,37 +308,12 @@ __device__ glm::vec3 computeVelocityChange(int N, int iSelf, const glm::vec3 *po
     glm::vec3 selfPos = pos[iSelf];
 
     for (unsigned i = 0; i < N; ++i) {
-        if (i == iSelf) {
-            continue;
-        }
-
         glm::vec3 currPos = pos[i];
         glm::vec3 currVel = vel[i];
-        float distance = glm::distance(currPos, selfPos);
-
-        if (distance < rule1Distance) {
-            perceived_center += currPos;
-            numNeighbors1 += 1;
-        }
-        if (distance < rule2Distance) {
-            awayVec -= (currPos - selfPos);
-        }
-        if (distance < rule3Distance) {
-            perceived_velocity += currVel;
-            numNeighbors3 += 1;
-        }
+        processNeighbor(iSelf, selfPos, i, currPos, currVel, perceived_center, awayVec, perceived_velocity, numNeighbors1, numNeighbors3);
     }
 
-    glm::vec3 rule1Contribution = glm::vec3(0);
-    if (numNeighbors1 > 0) {
-        perceived_center /= numNeighbors1;
-        rule1Contribution = (perceived_center - selfPos);
-    }
-    if (numNeighbors3 > 0) {
-        perceived_velocity /= numNeighbors3;
-    }
-
-    return rule1Contribution * rule1Scale + awayVec * rule2Scale + perceived_velocity * rule3Scale;
+    return combineRules(selfPos, perceived_center, awayVec, perceived_velocity, numNeighbors1, numNeighbors3);
 }
 
 /**
