@@ -276,7 +276,7 @@ __device__ glm::vec3 computeVelocityChange(int N, int iSelf, const glm::vec3 *po
 
     for (unsigned i = 0; i < N; ++i) {
         if (i == iSelf) {
-            return;
+            continue;
         }
 
         glm::vec3 currPos = pos[i];
