@@ -27,14 +27,30 @@
 #define COHERENT_GRID 1
 
 // LOOK-1.2 - change this to adjust particle count in the simulation
-const int N_FOR_VIS = 50000;
+int N_FOR_VIS = 100000;
 const float DT = 0.2f;
+bool neatOutput = false;
 
 /**
 * C main function.
 */
 int main(int argc, char* argv[]) {
   projectName = "5650 CUDA Intro: Boids";
+
+  if (argc >= 2) {
+      try {
+          N_FOR_VIS = std::stoi(argv[1]);
+          neatOutput = true;
+      }
+      catch (const std::invalid_argument& e) {
+          std::cerr << "Error: Invalid argument." << std::endl;
+          return 1;
+      }
+      catch (const std::out_of_range& e) {
+          std::cerr << "Error: Number out of range." << std::endl;
+          return 1;
+      }
+  }
 
   if (init(argc, argv)) {
     mainLoop();
@@ -205,6 +221,12 @@ void initShaders(GLuint * program) {
     cudaGLMapBufferObject((void**)&dptrVertVelocities, boidVBO_velocities);
 
     // execute the kernel
+    cudaEvent_t start, stop;
+    cudaEventCreate(&start);
+    cudaEventCreate(&stop);
+
+    cudaEventRecord(start);
+
     #if UNIFORM_GRID && COHERENT_GRID
     Boids::stepSimulationCoherentGrid(DT);
     #elif UNIFORM_GRID
@@ -212,6 +234,21 @@ void initShaders(GLuint * program) {
     #else
     Boids::stepSimulationNaive(DT);
     #endif
+
+    cudaEventRecord(stop);
+    cudaEventSynchronize(stop);
+    float milliseconds = 0;
+    cudaEventElapsedTime(&milliseconds, start, stop);
+
+    if (neatOutput) {
+        std::cout << milliseconds << std::endl;
+    }
+    else {
+        std::cout << "Kernel execution time: " << milliseconds << " ms" << std::endl;
+    }
+
+    cudaEventDestroy(start);
+    cudaEventDestroy(stop);
 
     #if VISUALIZE
     Boids::copyBoidsToVBO(dptrVertPositions, dptrVertVelocities);
@@ -226,8 +263,11 @@ void initShaders(GLuint * program) {
     double timebase = 0;
     int frame = 0;
 
-    Boids::unitTest(); // LOOK-1.2 We run some basic example code to make sure
-                       // your CUDA development setup is ready to go.
+    // When neatOutput is enabled, we just want to print the ms output of the each simulation step
+    if (!neatOutput) {
+        Boids::unitTest(); // LOOK-1.2 We run some basic example code to make sure
+                           // your CUDA development setup is ready to go.
+    }
 
     while (!glfwWindowShouldClose(window)) {
       glfwPollEvents();
